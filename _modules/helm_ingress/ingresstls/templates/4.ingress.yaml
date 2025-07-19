@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-default-routing"
+  namespace: {{ .Values.ingress.tlsSecretNamespace }}  
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    #NOTE: Comment the below line if you are forwarding HTTP traffic from AFD to AKS cluster
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true" #forcing it, will block HTTP only forwarding from AFD.
+    #nginx.ingress.kubernetes.io/use-regex: "true"
+    #nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: / # this is a fallback route when there is not matching routing URL or domain. It returns 500 status code.
+        pathType: Prefix
+        backend:
+          service:
+            name: "{{ .Values.ingress.tlsSecretName }}-fallback"
+            port:
+              number: 80
+      # - path: /ingress(/|$)(.*) # this is health check to ingress status
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: "{{ .Values.ingress.tlsSecretName }}-loader"
+      #       port:
+      #         number: 80
+      # - path: /(.*) # this is a fallback route when there is not matching routing URL or domain. It returns 500 status code.

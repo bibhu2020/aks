@@ -1,0 +1,27 @@
+# ---
+# # this Pod is to test and see if the Key Vault secrets are mounting to POD file system or not.
+# kind: Pod
+# apiVersion: v1
+# metadata:
+#   name: "{{ .Values.k8secret.providerClassName }}-test-client"
+#   namespace: "{{ .Values.application.namespace }}"
+# spec:
+#   containers:
+#     - name: busybox
+#       image: registry.k8s.io/e2e-test-images/busybox:1.29-4
+#       command:
+#         - "/bin/sleep"
+#         - "10000"
+#       volumeMounts:
+#       - name: "{{ .Values.k8secret.name }}-volume"
+#         mountPath: "/mnt/secrets-store-validate/{{ .Values.k8secret.name }}"
+#         readOnly: true
+#   nodeSelector:
+#     app: system
+#   volumes:
+#     - name: "{{ .Values.k8secret.name }}-volume"
+#       csi:
+#         driver: secrets-store.csi.k8s.io
+#         readOnly: true
+#         volumeAttributes:
+#           secretProviderClass: "{{ .Values.k8secret.providerClassName }}"

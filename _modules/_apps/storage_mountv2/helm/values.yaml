@@ -1,0 +1,29 @@
+application:
+  name: ""
+  namespace: ""
+  version: "1.0.0"
+
+aks:
+  kvCsiClientId: "" #CSI plugin installed on KV in AKS generates a managed identity. this is to capture the client of the same managed identity.
+  tenantId: "" #AKS tenant Id
+
+# storage account location and key
+storageAccount:
+  name: "" # storage account name
+  resourceGroupName: ""  # storage account resource group name
+  keyVaultName: "" # the key vault that stores the storage secrets or access keys
+  keyVaultSecretNameForStorageAccountName: ""  # storage account name stored in the key vault
+  keyVaultSecretNameForStorageAccountAccessKey: "" # storage account access key stored in the key vault
+  fileShareName: "" #specify the fileshare that you want to mount with Persistent Volume
+
+secret:
+  name: ""
+  providerClassName: ""
+
+persistentVolume:
+  name: ""
+  volumeHandler: "" #should be unique for each PV
+
+persistentVolumeClaim:
+  name: ""
+

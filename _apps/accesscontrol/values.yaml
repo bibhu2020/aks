@@ -1,0 +1,5 @@
+aadGroup:
+  developer: developer-aad-group-id
+  sre: sre-aad-group-id
+  pipelineSPN: client-id
+  

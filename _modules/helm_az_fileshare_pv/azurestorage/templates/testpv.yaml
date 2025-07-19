@@ -1,0 +1,51 @@
+---
+# this Pod is to test and see if the Key Vault secrets are mounting to POD file system or not.
+kind: Pod
+apiVersion: v1
+metadata:
+  name: "{{ .Values.secret.providerClassName }}-test-client"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  containers:
+    - name: busybox
+      image: registry.k8s.io/e2e-test-images/busybox:1.29-4
+      command:
+        - "/bin/sleep"
+        - "10000"
+      volumeMounts:
+      - name: "{{ .Values.storageAccount.keyVaultName }}-inline"
+        mountPath: "/mnt/secrets-store-validate/{{ .Values.storageAccount.keyVaultName }}"
+        readOnly: true
+  nodeSelector:
+    app: system
+  volumes:
+    - name: "{{ .Values.storageAccount.keyVaultName }}-inline"
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "{{ .Values.secret.providerClassName }}"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Values.persistentVolumeClaim.name }}-test-client"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  volumes:
+    - name: task-pv-storage
+      persistentVolumeClaim:
+        claimName: "{{ .Values.persistentVolumeClaim.name }}"
+  containers:
+    - name: task-pv-container
+      image: nginx
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/usr/share/nginx/html"
+          name: task-pv-storage
+  nodeSelector:
+    app: system
+
+

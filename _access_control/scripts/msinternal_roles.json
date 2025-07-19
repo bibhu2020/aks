@@ -1,0 +1,12 @@
+[
+    {
+        "resource_id": "/subscriptions/dc276571-9aac-4771-8451-c6ab5a4e058a/resourceGroups/defaultresourcegroup-eus/providers/microsoft.dashboard/grafana/grafana-2023718924-eus",
+        "role": "Grafana Viewer",
+        "username": "onecloudsre@microsoft.com"
+    },
+    {
+        "resource_id": "/subscriptions/dc276571-9aac-4771-8451-c6ab5a4e058a/resourceGroups/defaultresourcegroup-eus/providers/microsoft.dashboard/grafana/grafana-2023718924-eus",
+        "role": "Grafana Editor",
+        "username": "3cc70711-00c7-4af5-8468-5dc092c216b8"
+    }
+]

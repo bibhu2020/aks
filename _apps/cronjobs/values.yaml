@@ -1,0 +1,16 @@
+application: 
+  namespace: "riskiq"
+  name: "riskiq"
+  image: "aksocstgacr.azurecr.io/onecloud-cron-job:v1"
+  secrets:
+    name: "aksoc-stg-riskiq-kv"
+  storages:
+    mediaStore:
+      persistentVolumeClaim: "aksocstgeastusmedia-riskiq"
+      secretProviderClass: "aksocstgeastusmedia-aksoc-stg-eastus-kv1"
+    logStore:
+      persistentVolumeClaim: "aksocstgeastuslogs-riskiq"
+      secretProviderClass: "aksocstgeastuslogs-aksoc-stg-eastus-kv1"
+    backupStore:
+      persistentVolumeClaim: "aksocstgeastusbackups-riskiq"
+      secretProviderClass: "aksocstgeastusbackups-aksoc-stg-eastus-kv1"

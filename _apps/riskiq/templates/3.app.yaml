@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Values.application.name }}-app"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  replicas: {{ .Values.autoscaling.minReplicas }}
+  selector:
+    matchLabels:
+      app: "{{ .Values.application.name }}-app"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.application.name }}-app"
+    spec:
+      automountServiceAccountToken: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - cloudblogs
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: "{{ .Values.application.name }}-app"
+              topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: "{{ .Values.application.name }}-sa"
+      # initContainers:
+      #   - name: wait-for-secret
+      #     image: bitnami/kubectl
+      #     command: ['sh', '-c', 'until kubectl get secret {{ .Values.application.secrets.secretRefName }}; do echo 'waiting for secret'; sleep 2; done;']
+      containers:
+        - name: "{{ .Values.application.name }}-app"
+          image: "{{ .Values.application.image.repository }}:{{ .Values.application.image.tag }}"
+          volumeMounts:
+          - name: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}-volume"
+            mountPath: "/var/log/apache2" 
+          - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+            mountPath: "/var/www/html/wp-content/uploads" 
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "update-ca-certificates"]
+          livenessProbe:
+            httpGet:
+              path: /msa/
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /msa/
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: "{{ .Values.application.name }}-dbhost"
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-NAME          
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-PASSWORD          
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-USER         
+            - name: DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: DOMAIN-NAME         
+            - name: WORDPRESS_CONFIG_EXTRA
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-CONFIG-EXTRA          
+            - name: WORDPRESS_HOME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-HOME          
+            - name: WORDPRESS_SITEURL
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SITEURL          
+          resources:
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+            requests:
+              cpu: "0.5"
+              memory: "512Mi"
+      volumes:
+        - name: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}-volume"
+          persistentVolumeClaim:
+            claimName: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}"
+        - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+          persistentVolumeClaim:
+            claimName: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}"

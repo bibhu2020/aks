@@ -1,0 +1,21 @@
+apiVersion: azmonitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ingress-nginx-controller-prometheus-rule
+  namespace: ingress
+{{- else }}
+  namespace: {{ include "ingress-nginx.namespace" . }}
+{{- end }}
+  labels:
+    {{- include "ingress-nginx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+  {{- if .Values.controller.metrics.prometheusRule.additionalLabels }}
+    {{- toYaml .Values.controller.metrics.prometheusRule.additionalLabels | nindent 4 }}
+  {{- end }}
+spec:
+{{- if .Values.controller.metrics.prometheusRule.rules }}
+  groups:
+  - name: {{ template "ingress-nginx.name" . }}
+    rules: {{- toYaml .Values.controller.metrics.prometheusRule.rules | nindent 4 }}
+{{- end }}
+{{- end }}

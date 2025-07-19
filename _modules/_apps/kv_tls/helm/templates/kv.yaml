@@ -1,0 +1,27 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: "{{ .Values.k8secret.providerClassName }}"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  provider: azure
+  secretObjects:
+  - secretName: "{{ .Values.k8secret.name }}"
+    type: Opaque
+    data:
+    - objectName: "{{ .Values.keyVault.tlsCertificateName }}"
+      key: tls.key
+    - objectName: "{{ .Values.keyVault.tlsCertificateName }}"
+      key: tls.key
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "{{ .Values.keyVault.kvCsiClientId }}"
+    keyvaultName: "{{ .Values.keyVault.name }}"
+    objects: |
+      array:
+        - |
+          objectName: {{ .Values.keyVault.tlsCertificateName }}
+          objectType: secret
+    tenantId: "{{ .Values.keyVault.tenantId }}"
+

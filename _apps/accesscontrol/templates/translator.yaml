@@ -1,0 +1,114 @@
+######################################ROLE DEFINITIONS GOES HERE
+#########################################################################################################################
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: translator
+  name: read-access-developer-role
+rules:
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: translator
+  name: editor-access-sre-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "deployments", "services", "configmaps", "jobs", "cronjobs", "secrets"]  
+  verbs: ["create", "update", "delete", "patch", "get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: translator
+  name: network-access-sre-role
+rules:
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: translator
+  name: storageclass-access-sre-role
+rules:
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+######################################ROLE BINDINGS GOES HERE
+#########################################################################################################################
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-access-developer-role-binding-aad-grp
+  namespace: translator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: read-access-developer-role
+subjects:
+- kind: Group
+  namespace: translator
+  name: {{ .Values.aadGroup.developer }}
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name:  editor-access-sre-role-binding-aad-grp
+  namespace: translator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name:  editor-access-sre-role
+subjects:
+- kind: Group
+  namespace: translator
+  name: "{{ .Values.aadGroup.sre }}"
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name:  editor-access-sre-role-binding-aad-spn
+  namespace: translator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name:  editor-access-sre-role
+subjects:
+- kind: User
+  namespace: translator
+  name: "{{ .Values.aadGroup.pipelineSPN }}"
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name:  network-access-sre-role-binding-aad-spn
+  namespace: translator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name:  network-access-sre-role
+subjects:
+- kind: User
+  namespace: translator
+  name: "{{ .Values.aadGroup.pipelineSPN }}"
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name:  storageclass-access-sre-role-binding-aad-spn
+  namespace: translator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name:  storageclass-access-sre-role
+subjects:
+- kind: User
+  namespace: translator
+  name: "{{ .Values.aadGroup.pipelineSPN }}"
+---

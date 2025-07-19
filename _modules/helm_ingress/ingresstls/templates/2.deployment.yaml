@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Values.ingress.tlsSecretName }}-loader"
+  namespace: {{ .Values.ingress.tlsSecretNamespace }} 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: "{{ .Values.ingress.tlsSecretName }}-loader"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.ingress.tlsSecretName }}-loader"
+    spec:
+      nodeSelector:
+        app: system
+      securityContext:
+        runAsUser: 11000 #onecloud
+        runAsGroup: 22000 #onecloud
+      containers:
+      # - name: "{{ .Values.ingress.tlsSecretName }}-fallback"
+      #   image: "{{ .Values.ingress.secretLoaderImageRepository }}/onecloud-health-probe:v1.1"
+      #   resources:
+      #     request:
+      #       memory: "100Mi"
+      #       cpu: "50m"
+      #     limits:
+      #       memory: "256Mi"
+      #       cpu: "250m"
+      #   ports:
+      #   - containerPort: 8080
+      #   env:
+      #   - name: APP_STATUS
+      #     value: "500"
+      - name: "{{ .Values.ingress.tlsSecretName }}-loader"
+        image: "{{ .Values.ingress.secretLoaderImageRepository }}/onecloud-health-probe:v1.1"
+        resources:
+          request:
+            memory: "100Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: secrets-store-inline
+          subPath: "{{ .Values.ingress.certificateInKeyVault }}"
+          mountPath: "/usr/local/share/ca-certificates/ingress-tls-secret"
+          readOnly: true
+        env:
+        - name: APP_STATUS
+          value: "500"
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ .Values.ingress.tlsSecretName }}

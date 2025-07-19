@@ -1,0 +1,76 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: all-ingress-traffic-only-to-app-pods
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  podSelector:
+    matchLabels:
+      app: "{{ .Values.application.name }}-app"
+  policyTypes:
+  - Ingress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/component: controller
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress
+      ports:
+      - port: 80
+        protocol: TCP
+---
+{{- if .Values.application.databases.mysql.inClusterDb }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-app-pod-traffic-only-to-sql
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app: "{{ .Values.application.name }}-dbbackup"
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: "{{ .Values.application.namespace }}"
+      - podSelector:
+          matchLabels:
+            app: "{{ .Values.application.name }}-app"
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: "{{ .Values.application.namespace }}"
+      ports:
+      - port: 3306
+        protocol: TCP
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app: "{{ .Values.application.name }}-app"
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: "{{ .Values.application.namespace }}"
+      ports:
+      - port: 80
+        protocol: TCP
+    - to:
+      - podSelector:
+          matchLabels:
+            app: "{{ .Values.application.name }}-dbbackup"
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: "{{ .Values.application.namespace }}"
+      ports:
+      - port: 3306
+        protocol: TCP
+---
+{{- end }}

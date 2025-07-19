@@ -1,0 +1,8 @@
+ingress: 
+  tlsSecretName: "ingress-tls-secret" #Name of the secret that will store the certificate from Key Vault
+  tlsSecretNamespace: "ingress" #Namespace where the secret will be stored
+  secretKeyVaultName: "aks-poc-common-key-vault" #Key Vault that has the certificate
+  certificateInKeyVault: "wildcart-cloud-blogs-certificate" #Name of certificate in the Key Vault
+  secretProviderIdentity: "6d9e2421-8dea-4ac7-ad77-653d8b451f95" #Secret Provider Managed Identity
+  tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47"
+  secretLoaderImageRepository: "aksocstgacr.azurecr.io"

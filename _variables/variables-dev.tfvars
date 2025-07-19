@@ -1,0 +1,11 @@
+app             = "aksoc"
+env             = "dev" # must be of 3 characters
+aks_admin_aad_group = "cloudblogs-aks-cluster-admin-qa"
+subscription_id = "dc276571-9aac-4771-8451-c6ab5a4e058a" # Microsoft Azure Internal
+tenant_id       = "72f988bf-86f1-41af-91ab-2d7cd011db47"
+location        = "eastus"
+drlocation      = "westus"
+homepath        = "/home/azureuser" #$HOME value on the machine you are running the script.
+create_dr       = true // create disaster recovery environment
+ingress_tls_name =  "wildcart-cloud-blogs-certificate"
+in_cluster_db = false 

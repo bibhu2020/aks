@@ -1,0 +1,17 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: onecloud-azurefile
+provisioner: kubernetes.io/azure-file
+parameters:
+  skuName: Standard_LRS  # Or your desired SKU
+  uid: "33"  # Specify the UID you want
+  gid: "33"  # Specify the GID you want
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+mountOptions:
+  - dir_mode=0755
+  - file_mode=0755
+  - uid=1000  # Ensure these match the uid/gid above
+  - gid=1000

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: diskcleanup
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      component: diskcleanup
+  template:
+    metadata:
+      labels:
+        component: diskcleanup
+    spec:
+      volumes:
+        - name: containerd
+          hostPath:
+            path: /var/run/containerd/containerd.sock
+            type: Socket
+        - name: diskcleanup
+          configMap:
+            name: diskcleanup
+      containers:
+        - name: diskcleanup
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: Always
+          env:
+            - name: CRICTL_VERSION
+              value: v1.20.0
+            - name: CONTAINER_RUNTIME_ENDPOINT
+              value: unix:///var/run/containerd/containerd.sock
+            - name: IMAGE_SERVICE_ENDPOINT
+              value: unix:///var/run/containerd/containerd.sock
+          # details of the command:
+          # - install crictl
+          # - add a cron job from the config map
+          # - execute crond in the foregroud
+          command:
+            [
+              "sh",
+              "-c",
+              "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz && tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin && crontab /config/cronjobs && crond -f -d 8",
+            ]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+          volumeMounts:
+            - name: containerd
+              mountPath: /var/run/containerd/containerd.sock
+            - name: diskcleanup
+              mountPath: /config

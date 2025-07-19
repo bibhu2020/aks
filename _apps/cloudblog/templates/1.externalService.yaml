@@ -1,0 +1,9 @@
+# It's ane external name to the MySQL private endpoint
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Values.application.name }}-dbhost"
+  namespace: "{{ .Values.application.namespace }}" 
+spec:
+  type: ExternalName
+  externalName: "{{ .Values.application.databases.mysql.host }}"

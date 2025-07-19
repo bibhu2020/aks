@@ -1,0 +1,11 @@
+app             = "aksoc"
+env             = "ppe"
+aks_admin_aad_group  = "cloudblogs-aks-cluster-admin-preprod"
+subscription_id = "433cb7d3-bac1-4059-bacf-afb085b7a62b" # Azure Internal
+tenant_id       = "72f988bf-86f1-41af-91ab-2d7cd011db47"
+location        = "eastus"
+drlocation      = "westus"
+homepath        = "/home/nikhil" #$HOME value on the machine you are running the script.
+create_dr       = true // create disaster recovery environment
+ingress_tls_name =  "onecert-cloudblogsaksppe"
+in_cluster_db = false  

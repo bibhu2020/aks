@@ -1,0 +1,23 @@
+## Customized Storage Class (wrapper on managed-csi class) to create disk on specific resource group
+## Ref: https://learn.microsoft.com/en-us/azure/aks/azure-disk-csi
+{{- if .Values.application.databases.mysql.inClusterDb }}
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: "{{ .Values.application.namespace }}-azuredisk-csi"
+provisioner: disk.csi.azure.com
+parameters:
+  skuname: StandardSSD_LRS
+  kind: Managed
+  resourceGroup: "{{ .Values.application.resources.primaryResourceGroup }}"
+  location: "{{ .Values.application.resources.primaryLocation }}"
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+- matchLabelExpressions:
+  - key: topology.kubernetes.io/zone
+    values:
+    - eastus-1
+    - eastus-2
+{{- end }}

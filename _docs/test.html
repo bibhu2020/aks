@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBAC in AKS (Azure Kubernetes Service)</title>
+</head>
+<body>
+<h1>RBAC in AKS (Azure Kubernetes Service)</h1>
+<p>AKS, Microsoft's Azure Kubernetes Service, offers three distinct RBAC (Resource-Based Access Control) options to manage access within the AKS cluster:</p>
+<ol>
+<li><strong>Local Accounts with Kubernetes RBAC</strong></li>
+<li><strong>Azure AD Authentication with Kubernetes RBAC</strong></li>
+<li><strong>Azure AD Authentication with Azure RBAC</strong></li>
+</ol>
+<p>To better understand these options and their functionality, let's delve into the specific requirements of our AKS cluster. Our AKS deployment is tailored to accommodate three main user roles:</p>
+<ul>
+<li><strong>Cluster Admin:</strong> This role represents the super user, wielding comprehensive access privileges across the entire cluster.</li>
+<li><strong>SRE User:</strong> SRE (Site Reliability Engineering) users possess write access limited to selected namespaces, empowering them to deploy, delete, and edit Kubernetes objects as needed.</li>
+<li><strong>Developers:</strong> Developers are granted read-only access to specified namespaces, allowing them to view Kubernetes objects without the ability to make alterations or deletions.</li>
+</ul>
+<p>Additionally, we have established three corresponding Azure Active Directory (AAD) groups to encapsulate these user roles:</p>
+<table>
+<thead>
+<tr>
+<th>AAD Group</th>
+<th>Type of Users</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cloudblogs-aks-cluster-admin-[env]</td>
+<td>Cluster Admin</td>
+<td>Write access to the entire cluster</td>
+</tr>
+<tr>
+<td>cloudblogs-aks-developers-[env]</td>
+<td>Developers</td>
+<td>Read acccess to selected namespaces</td>
+</tr>
+<tr>
+<td>cloudblogs-aks-sre-[env]</td>
+<td>SRE Users</td>
+<td>Write access to selected namespaces</td>
+</tr>
+</tbody>
+</table>
+<p><span style="color:red;"><i>** [env] represents the cluster environment (like, staging, pre-prod, prod, etc...)</i></span></p>
+<p>With these requirements outlined, let's explore each RBAC option in detail, beginning with Authentication with/without Azure Active Directory, followed by different Authorization options, and understand why a particular option is chosen for our cluster.</p>
+<h2>Authentication using Local Account (Local Accounts with Kubernetes RBAC)</h2>
+<p>When Azure Active Directory (AAD) integration is not enabled, AKS, by default, uses local accounts based on x509 certificates for authentication. This means that users and admins get an X509 client certificate that is local to the cluster referred to as local accounts.</p>
+<p><span style="color:red;"><i><strong>On clusters, where AAD integration is not enabled, users and admin will have the same full access to the cluster resources. Hence, this is not a recommedned RBAC approach.</strong></i></span></p>
+<div style="display: flex; align-items: center;">
+<div style="flex: 1; max-width: 60%;"><img src="images/akslocalaccount.png" alt="Image" style="width: 100%;"></div>
+</div>
+<h2>Authentication using Azure AD</h2>
+<p>When AAD integration is enabled, as a result of issuing the <em>get-credentials</em> command for the cluster, users will have an empty kubeconfig file. When a user attempts to execute a command against the cluster for the first time, kubectl will try to sign the user in prompting an OAuth2 device code flow. On successful authentication, it will pull down the credential into the local kubeconfig file for subsquent calls to the cluster.</p>
+<pre><code>$ kubectl get pods 
+To sign in, use a web browser to open the page <a href="https://microsoft.com/devicelogin">https://microsoft.com/devicelogin</a> and enter the code XXXXXXXXX to authenticate.
+</code></pre>
+<div style="display: flex; align-items: center;">
+<div style="flex: 1; max-width: 60%;"><img src="images/aksaadintegration.png" alt="Image" style="width: 100%;"></div>
+</div>
+<h2>Authorization</h2>
+<p>There are also 3 different approaches to implement authorization in AKS described below. <em>Let's consider that AKS-Managed AAD integration is enabled and local accounts are disabled to assure complete security in all the below scenarios.</em></p>
+<h3>Kubernetes RBAC*</h3>
+<p>Since we have considered that AAD integration is enabled for authentication and local accounts are disabled, no user or identity has any sort of access to the cluster by default.</p>
+<p>To create Kubernetes RBAC (roles-cluster roles and role bindings-cluster role bindings), at least one identity must initially have admin access to the cluster. Hence, in this model of authorization, it is required that an AD group be defined to have admin access to the cluster from the beginning, upon the creation of the cluster. Then, users that are members of this AAD group can configure the rest of the access control for other AD users, groups, or service principles by assigning them Kubernetes roles and cluster roles.</p>
+<p>*<em>In our cluster, we have an AAD Group "cloudblogs-aks-cluster-admin" which was assigned as the cluster admin while enabling AAD authentication. All users in this AAD group has super user access to the cluster, and they have access to configure rest of the access control.</em>*</p>
+<div style="display: flex; align-items: center;">
+<div style="flex: 1; max-width: 60%;"><img src="images/kubernetesrbac.png" alt="Image" style="width: 100%;"></div>
+</div>
+<h4>Roles and Role Bindings</h4>
+<p>In Kubernetes RBAC, the access is controlled using Kubernetes Role, and Role Bindings objects.</p>
+<p><strong>Role:</strong><br>A role is a collection of access in a specific namespace. In our cluster requirement, we are having two roles:</p>
+<ul>
+<li>read-access-developer-role: As the name indicates, it only gives read access to all resources within a namespace. A user with this role, can only view or desctibe the K8 object, but can't alter it. He also can't create user, or make changes to the namespace quotas &amp; limits. This role is extended to the developers so that they can view the deployments. In order to deploy a change, the developer has to check-in the code to the git repo which triggers the CI/CD pipeline and the pipeline does the change deployment.</li>
+<li>editor-access-sre-role: This roles gives right permission to selected resources within a namespace. This role is extended to the SRE resources to troubleshoot or make temporary changes to the deployment from the command prompt. The CI/CD pipeline SPN is also assigned the same role so that the pipelines can perform deployment.</li>
+</ul>
+<pre><code>apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: riskiq
+  name: read-access-developer-role
+rules:
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: riskiq
+  name: editor-access-sre-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "deployments", "services", "configmaps", "secrets", "jobs", "cronjobs"]
+  verbs: ["create", "update", "delete", "patch", "get", "list", "watch"]
+</code></pre>
+<p><strong>Role Binding:</strong><br>A role binding is a role assignemnt to an User or AAD Group to perform the action within a namespace. We have 2 rolebindings defined in our cluster.</p>
+<ul>
+<li>read-access-developer-role-binding-aad: Assigns role read-access-developer-role to ADD Group "cloudblogs-aks-developers-[env]".</li>
+<li>editor-access-sre-role-binding-aad: Assigns role editor-access-sre-role to ADD Group "cloudblogs-aks-sre-[env]".</li>
+</ul>
+<pre><code>kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-access-developer-role-binding-aad
+  namespace: riskiq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: read-access-developer-role
+subjects:
+- kind: Group
+  namespace: riskiq
+  name: 7a3dd05e-d14e-4169-b852-5769968653d5
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: editor-access-sre-role-binding-aad
+  namespace: riskiq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: editor-access-sre-role
+subjects:
+- kind: Group
+  namespace: riskiq
+  name: 7a3dd05e-d14e-4169-b852-5769968653d5
+</code></pre>
+<p><span style="background-color: yellow;"><i><strong>In our cluster, we are using Kubernetes RBAC for authorization. We have role and role bindings defined for each namespace that controls the access of developers and SRE users.</strong></i></span></p>
+<h3>Azure RBAC</h3>
+<p>Azure RBAC will take the Azure AD integration one step further and will take care of both authentication and authorization inside an AKS cluster. You don't need to create any YAML manifests (role and role bindings) to manage user access in the namespaces. After the creation of the cluster, you can use the built-in Azure roles for AKS (which include AKS RBAC Admin, AKS RBAC Cluster Admin, AKS RBAC Reader, and AKS RBAC Writer) to assign to Azure identities such as a user, group, or service principal. The idea here is to work similarly as the other Azure services by using Azure AD roles (IAM) only.</p>
+<div style="display: flex; align-items: center;">
+<div style="flex: 1; max-width: 60%;"><img src="images/azurerrbac.png" alt="Image" style="width: 100%;"></div>
+</div>
+<h4>Built-in AKS RBAC roles</h4>
+<p>There are primarily 5 major type of built-in roles:</p>
+<ul>
+<li><strong>Azure Kubernetes Service RBAC Cluster Admin:</strong><br>It is the super user in the cluster, and lets you manage all resources in the cluster. When you enable AAD authentication on your AKS cluster, it asks you for an AAD group. It treats that AAD Group as the Cluster Admin, and assigns this role "Azure Kubernetes Service RBAC Cluster Admin".</li>
+<li><strong>Azure Kubernetes Service RBAC Admin:</strong><br>It lets you manage all resources under cluster/namespace, except update or delete resource quotas and namespaces.</li>
+<li><strong>Azure Kubernetes Service Cluster User Role:</strong><br>It allows the user to fetch the cluster credentials using"az aks get-credentials".</li>
+<li><strong>Azure Kubernetes Service RBAC Reader:</strong><br>It allows read-only access to see most objects in a namespace. It does not allow viewing roles or role bindings. This role does not allow viewing Secrets, since reading the contents of Secrets enables access to ServiceAccount credentials in the namespace, which would allow API access as any ServiceAccount in the namespace (a form of privilege escalation). Applying this role at cluster scope will give access across all namespaces.</li>
+<li><strong>Azure Kubernetes Service RBAC Write:</strong><br>It allows read/write access to most objects in a namespace.This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace. Applying this role at cluster scope will give access across all namespaces.</li>
+</ul>
+<p>You can assign these role to the Azure AD groups to get the access for the users in the group. <span style="color:red;"><strong><i> But there is one "catch" though: you can't use the Portal and assign this role using the Access Control (IAM) blade from the AKS service because it will assign that role for all namespaces inside the cluster, not just for namespace needed. </i></strong></span></p>
+<pre><code>az role assignment create --role "Azure Kubernetes Service RBAC Admin" --assignee &lt;&lt;groud-id for cloudblogs-aks-developers &gt;&gt; --scope /subscriptions/&lt;&lt;subscription&gt;&gt;/resourcegroups/&lt;&lt;rg&gt;&gt;/providers/Microsoft.ContainerService/managedClusters/&lt;&lt;cluster-name&gt;&gt;/namespaces/riskiq
+</code></pre>
+<p>Note that the --scope property assigns that role only for the riskiq namespace. One downside for this approach is that you can't see this role assignment in the Portal either. You will need to utilize Az CLI to see the scopes you have assigned for namespaces:</p>
+<pre><code>az role assignment list --scope /subscriptions/&lt;&lt;subscription&gt;&gt;/resourcegroups/&lt;&lt;rg&gt;&gt;/providers/Microsoft.ContainerService/managedClusters/&lt;&lt;cluster-name&gt;&gt;/namespaces/riskiq
+</code></pre>
+<p>At this point, users from group cloudblogs-aks-developers-[env] can run below command to connect to AKS:</p>
+<pre><code>az aks get-credentials --name myaks --resource-group myaksrg
+</code></pre>
+<p><span style="background-color: yellow;"><i><strong>We didn't choose this approach because Azure RBAC doesn't give fine-grained control over access to individual namespaces. In our cluster, we want to grant different access to different namespaces for different users, which is not possible using Azure RBAC. Also, it's very hard to trace role assignments in Azure RBAC because you can't see this role assignment in the Portal. You will need to utilize Az CLI to see the scopes you have assigned for namespaces.</strong></i></span></p>
+<h3>AKS-Managed Azure AD Integration</h3>
+<p>This is a new feature introduced by Microsoft where you can integrate AKS cluster with Azure Active Directory in a single click from the Azure Portal. Here, the control plane and data plane (the cluster and the Kubernetes objects inside it) is integrated with Azure AD. This helps in controlling user access using Azure AD, which is much easier than using the traditional Kubernetes way. Also, this gives us more control over authorization than the Azure RBAC (by using Azure built-in roles) because here we use the traditional Kubernetes roles and role bindings to manage the access of users to different namespaces. Additionally, you can easily see the role assignments in the Portal, which is not possible in the Azure RBAC.</p>
+<div style="display: flex; align-items: center;">
+<div style="flex: 1; max-width: 60%;"><img src="images/aksmanagedaad.png" alt="Image" style="width: 100%;"></div>
+</div>
+<h4>Steps for Enabling AKS-Managed AAD Integration</h4>
+<ol>
+<li>Create an AKS Cluster using Azure CLI or Azure Portal.</li>
+<li>Enable Azure AD integration for the AKS cluster:</li>
+</ol>
+<pre><code>az aks update --resource-group myResourceGroup --name myAKSCluster --enable-aad --aad-admin-group-object-ids &lt;&lt;aad-group-object-id&gt;&gt;
+</code></pre>
+<ol start="3">
+<li>Assign RBAC roles to the AAD users/groups in the AKS cluster using Kubernetes Role and Role Binding YAML manifests.</li>
+<li>Verify the integration from the Azure Portal.</li>
+</ol>
+<p><span style="background-color: yellow;"><i><strong>We choose this approach because AKS-Managed Azure AD Integration provides fine-grained control over access to individual namespaces using traditional Kubernetes RBAC. It also provides ease of use and visibility into role assignments through the Azure Portal.</strong></i></span></p>
+<p>With AKS-Managed Azure AD Integration, we have successfully implemented RBAC in our AKS cluster, providing appropriate access control to different users and groups based on their roles and responsibilities.</p>
+</body>
+</html>

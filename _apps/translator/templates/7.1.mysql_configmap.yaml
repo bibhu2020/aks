@@ -1,0 +1,22 @@
+{{- if .Values.application.databases.mysql.inClusterDb }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.application.name }}-mysql-configmap"
+  namespace: "{{ .Values.application.namespace }}"
+  labels:
+    app: mysql
+    app.kubernetes.io/name: mysql
+data:
+  primary.cnf: |
+    # Apply this config only on the primary.
+    [mysqld]
+    lower_case_table_names=1    
+    log-bin
+  replica.cnf: |
+    # Apply this config only on replicas.
+    [mysqld]
+    lower_case_table_names=1  
+    super-read-only
+
+{{- end }} 

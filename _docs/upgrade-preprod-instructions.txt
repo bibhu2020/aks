@@ -1,0 +1,105 @@
+#Step0: Set Environment variables for west us cluster
+export RESOURCE_GROUP=aksoc-ppe-westus-rg
+export CLUSTER_NAME=aksoc-ppe-westus
+export VMSIZE="Standard_D8s_v3"
+export NODECOUNT=4
+export USERNODEPOOL="userpool2"
+export SYSTEMNODEPOOL="systempool1"
+export USERNODEPOOLTEMP="userpooltemp"
+export SYSTEMNODEPOOLTEMP="syspooltemp"
+
+#Step1: Pre-validations
+// List the upgrades available in AKS. It tells you also the upgrade path based on which version you are currently in and in which region.
+az aks get-versions -l westus -o table
+
+// List the current version of your AKS service
+az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME | grep -E "orchestratorVersion|kubernetesVersion"
+
+// List the upgrades your cluster is eligible for.
+az aks get-upgrades -g $RESOURCE_GROUP -n $CLUSTER_NAME --output table
+
+#Step2: Add temporary nodepools for parking the loads 
+
+az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --node-vm-size $VMSIZE --name $USERNODEPOOLTEMP --node-count $NODECOUNT --mode User --os-sku Ubuntu
+
+az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --node-vm-size $VMSIZE --name $SYSTEMNODEPOOLTEMP --node-count $NODECOUNT --mode System --os-sku Ubuntu
+
+#Step3: Drain out the loads from active pools and cordn them
+. ./_docs/upgrades/cordon.sh $USERNODEPOOL
+
+. ./_docs/upgrades/cordon.sh $SYSTEMNODEPOOL
+
+#Step4: Validate the Application
+At this point, the applications should continue to work from the temporary node. Verify this before you proceed to the next steps.
+
+// make sure the nodes (to be upgraded) are removed from scheduling.
+kubetctl get nodes
+
+// make sure the pods are running from the temporary nodes only. (ignore the daemonsets)
+kubectl get pods -A
+
+#Step5: Upgrade the master node / control panel
+// list the upgrades available
+az aks get-upgrades -g $RESOURCE_GROUP -n$CLUSTER_NAME --output table
+
+export AKS_NEXT_VERSION=1.27.13
+
+// Upgrade the control panel
+az aks upgrade -g $RESOURCE_GROUP -n $CLUSTER_NAME --kubernetes-version $AKS_NEXT_VERSION --control-plane-only
+
+#Step6: Verify the upgrade versions
+az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME | grep -E "orchestratorVersion|kubernetesVersion"
+
+#Step7: Upgrade the node pools
+az aks nodepool upgrade --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --kubernetes-version $AKS_NEXT_VERSION --name $SYSTEMNODEPOOL
+
+az aks nodepool upgrade --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --kubernetes-version $AKS_NEXT_VERSION --name $USERNODEPOOL
+
+#Step8: Verify the upgrade versions
+az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME | grep -E "orchestratorVersion|kubernetesVersion"
+
+#Step9: Put the original nodepools to back in scheduling
+. ./_docs/upgrades/uncordon.sh $USERNODEPOOL
+
+. ./_docs/upgrades/uncordon.sh $SYSTEMNODEPOOL
+
+#Step10: Drain the load out from temporary nodepool to upgrade nodepools 
+. ./_docs/upgrades/cordon.sh $USERNODEPOOLTEMP
+
+. ./_docs/upgrades/cordon.sh $SYSTEMNODEPOOLTEMP
+
+#Step11: Validate the Application
+Make sure all apps are running at this point of time. No load is on the temporary nodepool. 
+
+// make sure the nodes (temporary nodepool) are removed from scheduling.
+kubectl get nodes
+
+// make sure the pods are running from the temporary nodes only. (ignore the daemonsets)
+kubectl get pods -A
+
+#Step12: Upgrade the temporary nodepool (optional)
+az aks nodepool upgrade --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --kubernetes-version $AKS_NEXT_VERSION --name $SYSTEMNODEPOOLTEMP
+
+az aks nodepool upgrade --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --kubernetes-version $AKS_NEXT_VERSION --name $USERNODEPOOLTEMP
+
+#Step13: Uncordon the temp pools
+. ./_docs/upgrades/uncordon.sh $USERNODEPOOLTEMP
+
+. ./_docs/upgrades/uncordon.sh $SYSTEMNODEPOOLTEMP
+
+#Step14: Delete the temporary nodepools
+az aks nodepool delete --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name $SYSTEMNODEPOOLTEMP
+
+az aks nodepool delete --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name $USERNODEPOOLTEMP
+
+#Step15: Set Environment variables for east us cluster
+export RESOURCE_GROUP=aksoc-ppe-eastus-rg
+export CLUSTER_NAME=aksoc-ppe-eastus
+export VMSIZE="Standard_D8s_v3"
+export NODECOUNT=4
+export USERNODEPOOL="userpool2"
+export SYSTEMNODEPOOL="systempool1"
+export USERNODEPOOLTEMP="userpooltemp"
+export SYSTEMNODEPOOLTEMP="syspooltemp"
+
+#step16: Repeat the same process from step1 to step14 for upgrading east us cluster

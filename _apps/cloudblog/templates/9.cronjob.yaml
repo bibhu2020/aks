@@ -1,0 +1,64 @@
+{{- if .Values.application.cronJobs.dbBackup.enabled }}
+kind: CronJob
+apiVersion: batch/v1
+metadata:
+  name: "{{ .Values.application.name }}-dbbackup"
+  namespace: "{{ .Values.application.namespace }}" 
+spec:
+  schedule: "0 */4 * * *" #"@daily"
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600 # TTL set to 1 hour (3600 seconds)
+      template:
+        metadata:
+          labels:
+            app: "{{ .Values.application.name }}-dbbackup"
+        spec:
+          serviceAccountName: "{{ .Values.application.name }}-sa"
+          containers:
+          - name: "{{ .Values.application.name }}-dbbackup"
+            image: "{{ .Values.application.cronJobs.dbBackup.image }}"
+            env:
+              - name: MYSQL_HOST
+                value: "{{ .Values.application.cronJobs.dbBackup.dbServer }}"
+                # valueFrom:
+                #   secretKeyRef:
+                #     name: "{{ .Values.application.secrets.secretRefName }}"
+                #     key: WORDPRESS-DB-HOST          
+              - name: MYSQL_PORT
+                value: "3306"            
+              - name: MYSQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ .Values.application.secrets.secretRefName }}"
+                    key: WORDPRESS-DB-USER          
+              - name: MYSQL_PSWD
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ .Values.application.secrets.secretRefName }}"
+                    key: WORDPRESS-DB-PASSWORD          
+              - name: MYSQL_DBNM
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ .Values.application.secrets.secretRefName }}"
+                    key: WORDPRESS-DB-NAME          
+              - name: BACKUP_PATH
+                value: "/mnt/dbbackups/{{ .Values.application.name }}/"             
+            volumeMounts:
+            - name: "{{ .Values.application.storages.backupStore.persistentVolumeClaim }}-volume"
+              mountPath: "/mnt/dbbackups/{{ .Values.application.name }}/" 
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - /var/scripts/mysqlbackup.sh $MYSQL_HOST $MYSQL_PORT $MYSQL_USER $MYSQL_PSWD $MYSQL_DBNM $BACKUP_PATH 
+            #- date; echo backing up db.
+            #- echo $MYSQL_HOST
+            # >> $BACKUP_PATH/dbbackup.log
+            #- date; echo database has been backed up.
+          restartPolicy: OnFailure
+          volumes:
+            - name: "{{ .Values.application.storages.backupStore.persistentVolumeClaim }}-volume"
+              persistentVolumeClaim:
+                claimName: "{{ .Values.application.storages.backupStore.persistentVolumeClaim }}"
+{{- end }}

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: diskcleanup
+  namespace: monitoring
+  labels:
+    component: diskcleanup
+data:
+  # removes all images unused by a running container
+  cronjobs: 0 0 * * * crictl rmi --prune 2>&1

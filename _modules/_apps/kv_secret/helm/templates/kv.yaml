@@ -1,0 +1,195 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: "{{ .Values.k8secret.providerClassName }}"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  provider: azure
+  secretObjects:
+  - secretName: "{{ .Values.k8secret.name }}"
+    type: Opaque
+    data:
+    - objectName: "{{ .Values.keyVault.secrets.key1 }}"
+      key: "{{ .Values.keyVault.secrets.key1 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key2 }}"
+      key: "{{ .Values.keyVault.secrets.key2 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key3 }}"
+      key: "{{ .Values.keyVault.secrets.key3 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key4 }}"
+      key: "{{ .Values.keyVault.secrets.key4 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key5 }}"
+      key: "{{ .Values.keyVault.secrets.key5 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key6 }}"
+      key: "{{ .Values.keyVault.secrets.key6 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key7 }}"
+      key: "{{ .Values.keyVault.secrets.key7 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key8 }}"
+      key: "{{ .Values.keyVault.secrets.key8 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key9 }}"
+      key: "{{ .Values.keyVault.secrets.key9 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key10 }}"
+      key: "{{ .Values.keyVault.secrets.key10 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key11 }}"
+      key: "{{ .Values.keyVault.secrets.key11 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key12 }}"
+      key: "{{ .Values.keyVault.secrets.key12 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key13 }}"
+      key: "{{ .Values.keyVault.secrets.key13 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key14 }}"
+      key: "{{ .Values.keyVault.secrets.key14 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key15 }}"
+      key: "{{ .Values.keyVault.secrets.key15 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key16 }}"
+      key: "{{ .Values.keyVault.secrets.key16 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key17 }}"
+      key: "{{ .Values.keyVault.secrets.key17 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key18 }}"
+      key: "{{ .Values.keyVault.secrets.key18 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key19 }}"
+      key: "{{ .Values.keyVault.secrets.key19 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key20 }}"
+      key: "{{ .Values.keyVault.secrets.key20 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key21 }}"
+      key: "{{ .Values.keyVault.secrets.key21 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key22 }}"
+      key: "{{ .Values.keyVault.secrets.key22 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key23 }}"
+      key: "{{ .Values.keyVault.secrets.key23 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key24 }}"
+      key: "{{ .Values.keyVault.secrets.key24 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key25 }}"
+      key: "{{ .Values.keyVault.secrets.key25 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key26 }}"
+      key: "{{ .Values.keyVault.secrets.key26 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key27 }}"
+      key: "{{ .Values.keyVault.secrets.key27 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key28 }}"
+      key: "{{ .Values.keyVault.secrets.key28 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key29 }}"
+      key: "{{ .Values.keyVault.secrets.key29 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key30 }}"
+      key: "{{ .Values.keyVault.secrets.key30 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key31 }}"
+      key: "{{ .Values.keyVault.secrets.key31 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key32 }}"
+      key: "{{ .Values.keyVault.secrets.key32 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key33 }}"
+      key: "{{ .Values.keyVault.secrets.key33 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key34 }}"
+      key: "{{ .Values.keyVault.secrets.key34 }}"
+    - objectName: "{{ .Values.keyVault.secrets.key35 }}"
+      key: "{{ .Values.keyVault.secrets.key35 }}"  
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "{{ .Values.keyVault.kvCsiClientId }}"
+    keyvaultName: "{{ .Values.keyVault.name }}"
+    objects: |
+      array:
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key1 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key2 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key3 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key4 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key5 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key6 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key7 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key8 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key9 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key10 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key11 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key12 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key13 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key14 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key15 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key16 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key17 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key18 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key19 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key20 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key21 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key22 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key23 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key24 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key25 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key26 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key27 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key28 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key29 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key30 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key31 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key32 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key33 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key34 }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.keyVault.secrets.key35 }}"
+          objectType: secret
+    tenantId: "{{ .Values.keyVault.tenantId }}"
+

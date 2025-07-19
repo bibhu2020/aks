@@ -1,0 +1,197 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Values.application.name }}-app"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  replicas: {{ .Values.autoscaling.minReplicas }}
+  selector:
+    matchLabels:
+      app: "{{ .Values.application.name }}-app"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.application.name }}-app"
+    spec:
+      automountServiceAccountToken: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - cloudblogs
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: "{{ .Values.application.name }}-app"
+              topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: "{{ .Values.application.name }}-sa"
+      # securityContext:
+      #   runAsUser: 33 # www-data
+      #   runAsGroup: 33
+      #   fsGroup: 33000 
+      containers:
+        - name: "{{ .Values.application.name }}-app"
+          image: "{{ .Values.application.image.repository }}:{{ .Values.application.image.tag }}"
+          volumeMounts:
+          - name: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}-volume"
+            mountPath: "/var/log/apache2" 
+          - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+            mountPath: "/var/www/html/wp-content/uploads" 
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "update-ca-certificates"]
+          env:
+            - name: AccountID
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: AccountID          
+            - name: LicenseKey
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: LicenseKey         
+            - name: STAGE_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: STAGE-DOMAIN-NAME          
+            - name: WORDPRESS_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-AUTH-KEY          
+            - name: WORDPRESS_AUTH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-AUTH-SALT         
+            - name: WORDPRESS_LOGGED_IN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-LOGGED-IN-KEY          
+            - name: WORDPRESS_LOGGED_IN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-LOGGED-IN-SALT          
+            - name: WORDPRESS_NONCE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-NONCE-KEY         
+            - name: WORDPRESS_NONCE_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-NONCE-SALT          
+            - name: WORDPRESS_SECURE_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SECURE-AUTH-KEY          
+            - name: WORDPRESS_SECURE_AUTH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SECURE-AUTH-SALT          
+            - name: DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: DOMAIN-NAME          
+            - name: WORDPRESS_BASIC_PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-BASIC-PASSWD          
+            - name: WORDPRESS_BASIC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-BASIC-USER        
+            - name: WORDPRESS_CONFIG_EXTRA
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-CONFIG-EXTRA          
+            - name: WORDPRESS_HOME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-HOME          
+            - name: WORDPRESS_HTTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-HTTP-HOST         
+            - name: WORDPRESS_SITEURL
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SITEURL          
+            - name: WPMS_MAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WPMS-MAIL-FROM           
+            - name: WPMS_MAIL_FROM_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WPMS-MAIL-FROM-NAME           
+            - name: WPMS_MAILER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WPMS-MAILER         
+            - name: WPMS_SENDGRID_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WPMS-SENDGRID-API-KEY         
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-PASSWORD         
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-USER          
+            - name: WORDPRESS_DB_HOST
+              value: "{{ .Values.application.name }}-dbhost"          
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-NAME       
+            - name: translator_dummy
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: translator-dummy        
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "0.5"
+              memory: "512Mi"
+      volumes:
+        - name: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}-volume"
+          persistentVolumeClaim:
+            claimName: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}"
+        - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+          persistentVolumeClaim:
+            claimName: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}"

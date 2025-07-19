@@ -1,0 +1,45 @@
+kind: CronJob
+apiVersion: batch/v1
+metadata:
+  name: "{{ .Values.application.name }}-mediabackup"
+  namespace: "{{ .Values.application.namespace }}" 
+spec:
+  schedule: "0 */4 * * *" #"@daily"
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600 # TTL set to 1 hour (3600 seconds)
+      template:
+        metadata:
+          labels:
+            app: "{{ .Values.application.name }}-mediabackup"
+        spec:
+          serviceAccountName: "{{ .Values.application.name }}-sa"
+          containers:
+          - name: "{{ .Values.application.name }}-mediabackup"
+            image: "{{ .Values.application.image }}"
+            env:
+              - name: APP_NAME
+                value: "{{ .Values.application.name }}"             
+              - name: MEDIA_PATH
+                value: "/mnt/mediaStore/{{ .Values.application.name }}"             
+              - name: BACKUP_PATH
+                value: "/mnt/backupStore/{{ .Values.application.name }}"             
+            volumeMounts:
+            - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+              mountPath: "/mnt/mediaStore/{{ .Values.application.name }}/" 
+            - name: "{{ .Values.application.storages.backupStore.persistentVolumeClaim }}-volume"
+              mountPath: "/mnt/backupStore/{{ .Values.application.name }}/" 
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - sleep 3600
+            # - /home/onecloud/mediabackup.sh $MEDIA_PATH $BACKUP_PATH $APP_NAME 22
+          restartPolicy: OnFailure
+          volumes:
+            - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+              persistentVolumeClaim:
+                claimName: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}"
+            - name: "{{ .Values.application.storages.backupStore.persistentVolumeClaim }}-volume"
+              persistentVolumeClaim:
+                claimName: "{{ .Values.application.storages.backupStore.persistentVolumeClaim }}"

@@ -1,0 +1,42 @@
+[
+    {
+        "group": "cloudblogs-aks-cluster-admin-prod",
+        "user": "sc-vna339790@microsoft.com",
+        "action": "add"
+    },
+    {
+        "group": "cloudblogs-aks-cluster-admin-prod",
+        "user": "SC-vpu38@microsoft.com",
+        "action": "add"
+    },
+    {
+        "group": "cloudblogs-aks-cluster-admin-preprod",
+        "user": "sc-vna339790@microsoft.com",
+        "action": "add"
+    },
+    {
+        "group": "cloudblogs-aks-cluster-admin-preprod",
+        "user": "SC-vpu38@microsoft.com",
+        "action": "add"
+    },
+    {
+        "group": "cloudblogs-aks-cluster-admin-qa",
+        "user": "sc-vna339790@microsoft.com",
+        "action": "remove"
+    },
+    {
+        "group": "cloudblogs-aks-cluster-admin-qa",
+        "user": "SC-vpu38@microsoft.com",
+        "action": "add"
+    },
+    {
+        "group": "cloudblogs-aks-developers-qa",
+        "user": "v-kumavivek@microsoft.com",
+        "action": "add"
+    },
+    {
+        "group": "cloudblogs-aks-developers-qa",
+        "user": "SC-vpu38@microsoft.com",
+        "action": "remove"
+    }
+]

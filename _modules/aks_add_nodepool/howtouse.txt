@@ -1,0 +1,49 @@
+
+// Add worker nodes to AKS cluster
+module "aks_cluster_nodepools" {
+  depends_on                    = [data.azurerm_kubernetes_cluster.aks_cluster, data.azurerm_kubernetes_cluster.draks_cluster]
+  source                        = "../_modules/aks_add_nodepool"
+  tags                          = local.tags      
+
+  workernode_list               = var.create_dr ? [
+        {
+            name                    = "userpool1"
+            kubernetes_cluster_id   = data.azurerm_kubernetes_cluster.aks_cluster.id
+            subnet_id               = module.vnet_aks.subnets["aks-subnet-vnodes"].id
+            vm_size                 = "Standard_DS2_v2"
+            max_count               = 30
+            min_count               = 2
+            node_labels             =   {
+                                        "nodepool-type" : "user", 
+                                        "node-os" : "linux", 
+                                        "app" : "onecloud-apps"
+                                    }
+        }, {
+            name                    = "userpool2"
+            kubernetes_cluster_id   = data.azurerm_kubernetes_cluster.draks_cluster[0].id
+            subnet_id               = module.drvnet_aks.subnets["aks-subnet-vnodes"].id
+            vm_size                 = "Standard_DS2_v2"
+            max_count               = 30
+            min_count               = 2
+            node_labels             =   {
+                                        "nodepool-type" : "user", 
+                                        "node-os" : "linux", 
+                                        "app" : "onecloud-apps"
+                                    }
+        }
+    ] : [
+        {
+            name                    = "userpool1"
+            kubernetes_cluster_id   = data.azurerm_kubernetes_cluster.aks_cluster.id
+            subnet_id               = module.vnet_aks.subnets["aks-subnet-vnodes"].id
+            vm_size                 = "Standard_DS2_v2"
+            max_count               = 30
+            min_count               = 2
+            node_labels             =   {
+                                        "nodepool-type" : "user", 
+                                        "node-os" : "linux", 
+                                        "app" : "onecloud-apps"
+                                    }
+        }
+    ]
+}

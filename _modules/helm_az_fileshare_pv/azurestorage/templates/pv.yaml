@@ -1,0 +1,88 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: "{{ .Values.secret.providerClassName }}"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  provider: azure
+  secretObjects:
+  - secretName: "{{ .Values.secret.name }}"
+    type: Opaque
+    data:
+    - objectName: "{{ .Values.storageAccount.keyVaultSecretNameForStorageAccountName }}"
+      key: "azurestorageaccountname"
+    - objectName: "{{ .Values.storageAccount.keyVaultSecretNameForStorageAccountAccessKey }}"
+      key: "azurestorageaccountkey"
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "{{ .Values.aks.kvCsiClientId }}"
+    keyvaultName: "{{ .Values.storageAccount.keyVaultName }}"
+    objects: |
+      array:
+        - |
+          objectName: "{{ .Values.storageAccount.keyVaultSecretNameForStorageAccountName }}"
+          objectType: secret
+        - |
+          objectName: "{{ .Values.storageAccount.keyVaultSecretNameForStorageAccountAccessKey }}"
+          objectType: secret
+    tenantId: "{{ .Values.aks.tenantId }}"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: file.csi.azure.com
+  name: "{{ .Values.persistentVolume.name }}"
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azurefile-csi
+  csi:
+    driver: file.csi.azure.com
+    readOnly: false
+    volumeHandle: "{{ .Values.persistentVolume.name }}-{{ .Values.storageAccount.fileShareName }}"  # make sure this volumeid is unique for every identical share in the cluster
+    volumeAttributes:
+      server: "{{ .Values.storageAccount.name }}.privatelink.file.core.windows.net"
+      resourceGroup: "{{ .Values.storageAccount.resourceGroupName }}"  # optional, only set this when storage account is not in the same resource group as node
+      shareName: "{{ .Values.storageAccount.fileShareName }}" 
+    nodeStageSecretRef:
+      name: "{{ .Values.secret.name }}" #It's the secret that you created above using SecretProviderClass.
+      namespace: "{{ .Values.application.namespace }}"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: nodepool-type
+          operator: In
+          values:
+          - system
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=0
+    - gid=0
+    - mfsymlinks
+    - cache=strict
+    - nosharesock
+    - nobrl
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Values.persistentVolumeClaim.name }}"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile-csi
+  volumeName: "{{ .Values.persistentVolume.name }}" #It's the persistent volume you created above.
+  resources:
+    requests:
+      storage: 50Gi
+
+
+# # Note: 2 attributes that connect PV to PVC is the accessModes, storage class & storage capacity. Hence, It is always one to one.

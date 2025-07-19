@@ -1,0 +1,167 @@
+# apiVersion: secrets-store.csi.x-k8s.io/v1
+# kind: SecretProviderClass
+# metadata:
+#   name: djecommerce-tls-secret
+#   namespace: secblog
+# spec:
+#   provider: azure
+#   secretObjects:
+#   - secretName: djecommerce-tls-secret
+#     type: kubernetes.io/tls
+#     data:
+#     - objectName: "wildcart-cloud-blogs-certificate"
+#       key: tls.key
+#     - objectName: "wildcart-cloud-blogs-certificate"
+#       key: tls.crt
+#   parameters:
+#     usePodIdentity: "false"
+#     useVMManagedIdentity: "true"
+#     userAssignedIdentityID: "{{ .Values.application.csiProviderId }}"
+#     keyvaultName: "aks-poc-common-key-vault"
+#     objects: |
+#       array:
+#         - |
+#           objectName: wildcart-cloud-blogs-certificate
+#           objectType: secret
+#     tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47"
+# ---
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: djecommerce
+#   namespace: secblog 
+#   labels:
+#     app: djecommerce
+# spec:
+#   containers:
+#   - image: "docker.io/bibhupmishra/djecommerce:106"
+#     name: djecommerce-container
+#     ports:
+#     - containerPort: 8000
+#       protocol: TCP
+#     volumeMounts:
+#     - name: secrets-store-inline
+#       subPath: wildcart-cloud-blogs-certificate
+#       mountPath: "/mnt/djecommerce-tls"
+#       readOnly: true 
+#     lifecycle:
+#       postStart:
+#         exec:
+#           command: ["/bin/sh", "-c", "update-ca-certificates"]
+#     resources:
+#       limits:
+#         cpu: "1"
+#         memory: "1Gi"
+#       requests:
+#         cpu: "0.5"
+#         memory: "512Mi"
+#   volumes:
+#     - name: secrets-store-inline
+#       csi:
+#         driver: secrets-store.csi.k8s.io
+#         readOnly: true
+#         volumeAttributes:
+#           secretProviderClass: "djecommerce-tls-secret"      
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: djecommerce-srv
+#   namespace: secblog 
+# spec:
+#   selector:
+#     app: djecommerce
+#   ports:
+#   - protocol: TCP
+#     port: 80
+#     targetPort: 8000
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: djblogging-ingress
+#   namespace: secblog 
+#   annotations:
+#     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+# spec:
+#   ingressClassName: nginx
+#   tls:
+#   - hosts:
+#     - djecommerce.cloudblogs-prep.microsoft.com
+#     secretName: djecommerce-tls-secret
+#   rules:
+#     - host: djecommerce.cloudblogs-prep.microsoft.com
+#       http:
+#         paths:
+#           - pathType: Prefix
+#             backend:
+#               service:
+#                 name: "djecommerce-srv" 
+#                 port:
+#                   number: 80
+#             path: /
+# # ---
+# # apiVersion: secrets-store.csi.x-k8s.io/v1
+# # kind: SecretProviderClass
+# # metadata:
+# #   name: djecommerce-client-tls-secret
+# #   namespace: secblog
+# # spec:
+# #   provider: azure
+# #   parameters:
+# #     usePodIdentity: "false"
+# #     useVMManagedIdentity: "true"
+# #     userAssignedIdentityID: "{{ .Values.application.csiProviderId }}"
+# #     keyvaultName: "aks-poc-common-key-vault"
+# #     objects: |
+# #       array:
+# #         - |
+# #           objectName: wildcart-cloud-blogs-certificate
+# #           objectType: cert
+# #     tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47"
+# ---
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: djecommercehttps-client
+#   namespace: secblog
+# spec:
+#   hostAliases:
+#     - ip: "10.240.20.42"
+#       hostnames:
+#         - "djecommerce.cloudblogs-prep.microsoft.com"
+#   containers:
+#     - name: djecommercehttps-client
+#       image: mcr.microsoft.com/dotnet/core/aspnet
+#       resources:
+#         limits:
+#           memory: "128Mi"
+#           cpu: "500m"
+#       ports:
+#       - containerPort: 5432
+#       # volumeMounts:
+#       # - name: tls-client-secret
+#       #   subPath: wildcart-cloud-blogs-certificate
+#       #   mountPath: "/usr/local/share/ca-certificates/djecommerce.cloudblogs-prep.microsoft.com.crt"
+#       #   readOnly: true
+#       # lifecycle:
+#       #   postStart:
+#       #     exec:
+#       #       command: ["/bin/sh", "-c", "update-ca-certificates"]
+#       command: ["/bin/bash", "-c"]
+#       args:
+#         - export BACKEND_URL="https://djecommerce.cloudblogs-prep.microsoft.com/";
+#           while true; do
+#             echo -e "\n Attemping $BACKEND_URL  \n";
+#             curl -sS "$BACKEND_URL";
+#             echo -e "\n ---------------------------- \n";
+#             sleep 30m;
+#           done;
+#   # volumes:
+#   #   - name: tls-client-secret
+#   #     csi:
+#   #       driver: secrets-store.csi.k8s.io
+#   #       readOnly: true
+#   #       volumeAttributes:
+#   #         secretProviderClass: "djecommerce-client-tls-secret"
+# ---

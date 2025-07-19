@@ -1,0 +1,212 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Values.application.name }}-app"
+  namespace: "{{ .Values.application.namespace }}"
+spec:
+  replicas: {{ .Values.autoscaling.minReplicas }}
+  selector:
+    matchLabels:
+      app: "{{ .Values.application.name }}-app"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.application.name }}-app"
+    spec:
+      automountServiceAccountToken: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - cloudblogs
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: "{{ .Values.application.name }}-app"
+              topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: "{{ .Values.application.name }}-sa"
+      # securityContext:
+      #   runAsUser: 33 # www-data
+      #   runAsGroup: 33
+      #   fsGroup: 33000 
+      containers:
+        - name: "{{ .Values.application.name }}-app"
+          image: "{{ .Values.application.image.repository }}:{{ .Values.application.image.tag }}"
+          volumeMounts:
+          - name: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}-volume"
+            mountPath: "/var/log/apache2" 
+          - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+            mountPath: "/var/www/html/en-us/security/blog/wp-content/uploads" 
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "update-ca-certificates"]
+          livenessProbe:
+            httpGet:
+              path: /en-us/security/blog/
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /en-us/security/blog/
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+          env:          
+            - name: WORDPRESS_DB_HOST
+              value: "{{ .Values.application.name }}-dbhost"
+            - name: CELA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: CELA-API-KEY          
+            - name: EP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: EP-HOST          
+            - name: EP_INDEX_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: EP-INDEX-PREFIX          
+            - name: ES_SHIELD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: ES-SHIELD          
+            - name: MICROSOFT_QUEUE_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: MICROSOFT-QUEUE-ACCESS-KEY          
+            - name: MICROSOFT_QUEUE_ACCOUNT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: MICROSOFT-QUEUE-ACCOUNT-NAME          
+            - name: RSA_FORCE_RESTRICTION
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: RSA-FORCE-RESTRICTION          
+            - name: SKIP_FORCE_WP_LOGIN_DIRECT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: SKIP-FORCE-WP-LOGIN-DIRECT          
+            - name: Stage_Domain_Name
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: Stage-Domain-Name          
+            - name: TENUPSSO_DISABLE
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: TENUPSSO-DISABLE          
+            - name: WORDPRESS_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-AUTH-KEY          
+            - name: WORDPRESS_AUTH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-AUTH-SALT          
+            - name: WORDPRESS_CONFIG_EXTRA
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-CONFIG-EXTRA        
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-NAME          
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-PASSWORD          
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-DB-USER          
+            - name: WORDPRESS_HOME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-HOME          
+            - name: WORDPRESS_HTTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-HTTP-HOST          
+            - name: WORDPRESS_LOGGED_IN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-LOGGED-IN-KEY          
+            - name: WORDPRESS_LOGGED_IN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-LOGGED-IN-SALT          
+            - name: WORDPRESS_NONCE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-NONCE-KEY          
+            - name: WORDPRESS_NONCE_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-NONCE-SALT          
+            - name: WORDPRESS_SECURE_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SECURE-AUTH-KEY          
+            - name: WORDPRESS_SECURE_AUTH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SECURE-AUTH-SALT          
+            - name: WORDPRESS_SITEURL
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WORDPRESS-SITEURL          
+            - name: WP_ENVIRONMENT_TYPE
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.application.secrets.secretRefName }}"
+                  key: WP-ENVIRONMENT-TYPE          
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}-volume"
+          persistentVolumeClaim:
+            claimName: "{{ .Values.application.storages.logStore.persistentVolumeClaim }}"
+        - name: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}-volume"
+          persistentVolumeClaim:
+            claimName: "{{ .Values.application.storages.mediaStore.persistentVolumeClaim }}"
+            
